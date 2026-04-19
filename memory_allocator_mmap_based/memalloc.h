@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <sys/mman.h>
 #include <stdint.h>
+#include <errno.h>
+#include <stdbool.h>
 
 
 #define WORD_BITS 32
@@ -20,9 +22,13 @@ typedef struct mem_ledger {
 }mem_ledger_t;
 
 typedef struct header {
+    bool allocated;
     uint32_t size;
     void *mem_start;
     void *mem_end;
 
 }header_t;
 
+
+int memory_init();
+void *alloc (uint32_t size_in_bytes);

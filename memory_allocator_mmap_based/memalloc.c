@@ -3,10 +3,37 @@
 /* A global variable for memory control block */
 mem_ledger_t mem_ledger;
 
+void *book_keeping(header_t *header)
+{
+    mem_ledger.free_mem_size = mem_ledger.max_size - header->size;
+    mem_ledger.block_start = header->mem_end + 1;
+}
+
+void *alloc (uint32_t size_in_bytes)
+{
+    header_t *header;
+
+    if (size_in_bytes > mem_ledger.max_size) {
+        printf("requested mem siz is larger than heap. ALLOCATION FAILED !!\n");
+        return ENOMEM;
+    }
+
+    header = (header_t *) mem_ledger.block_start;
+
+    header->allocated = true;
+    header->size = size_in_bytes;
+    header->mem_start = (void *) (header + 1);
+    header->mem_end = header->mem_start + size_in_bytes;
+
+    book_keeping(header);
+
+    return header->mem_start;
+
+}
+
 int memory_init()
 {
     mem_ledger.max_size = MAX_ALLOC_SIZE_BYTES;
-    //size_t size = mem_ledger.size;
 
     void *ptr = mmap(NULL, mem_ledger.max_size,
                      PROT_READ | PROT_WRITE,
@@ -31,23 +58,13 @@ int main (void)
 
     int ret;
     int *a;
+
     ret = memory_init();
 
-    a = (int *) mem_ledger.block_start;
+    a = (int *) alloc(10);
+    *a = 9;
 
-    *a = 1;
+    printf("%d", *a);
 
-    printf("&a = %p, a = %d", a, *a);
-    //(int *) mem_ledger.block_start = 1;
 
-    
-/*
-    // Use memory
-    memset(ptr, 0xAA, size);
-
-    printf("Allocated at %p\n", ptr);
-
-    munmap(ptr, size);
-    return 0;
-*/
 }
