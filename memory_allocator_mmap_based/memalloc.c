@@ -2,12 +2,44 @@
 
 /* A global variable for memory control block */
 mem_ledger_t mem_ledger;
+uint32_t hole_size;
 
 void *book_keeping(header_t *header)
 {
     mem_ledger.free_mem_size = mem_ledger.max_size - header->size;
-    mem_ledger.block_start = header->mem_end + 1;
+    mem_ledger.next_block_start = header->mem_end + 1;
+
+    header->previous = mem_ledger.last_allocated;
+    mem_ledger.last_allocated = header;
+
+    if (header->next != NULL) {
+        hole_size = (uint32_t) (header - (header->previous->mem_end + 1));
+    }
+    else {
+        hole_size = 
+    }
+
+    if (hole_size < mem_ledger.smallest_free_mem_size) {
+        mem_ledger.smallest_free_mem_size = hole_size;
+        mem_ledger.smalllest_free_start = 
+    }
+
 }
+
+void * free(void *to_be_freed) {
+
+    
+}
+
+void * __alloc(header_t *header, uint32_t size_in_bytes, void *free_mem_start) {
+
+    header = (header_t *) free_mem_start;
+    header->allocated = true;
+    header->size = size_in_bytes;
+    header->mem_start = (void *) (header + 1);
+    header->mem_end = header->mem_start + size_in_bytes;
+}
+
 
 void *alloc (uint32_t size_in_bytes)
 {
@@ -18,12 +50,14 @@ void *alloc (uint32_t size_in_bytes)
         return ENOMEM;
     }
 
-    header = (header_t *) mem_ledger.block_start;
+    if (size_in_bytes < mem_ledger.smallest_free_mem_size) {
+        __alloc(header, size_in_bytes, mem_ledger.smalllest_free_start);
+    }
 
-    header->allocated = true;
-    header->size = size_in_bytes;
-    header->mem_start = (void *) (header + 1);
-    header->mem_end = header->mem_start + size_in_bytes;
+    else {
+        __alloc(header, size_in_bytes, mem_ledger.largest_free_start);
+    }
+    
 
     book_keeping(header);
 
