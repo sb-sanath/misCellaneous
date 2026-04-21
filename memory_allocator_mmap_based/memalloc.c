@@ -6,29 +6,32 @@ uint32_t hole_size;
 
 void *book_keeping(header_t *header)
 {
-    mem_ledger.free_mem_size = mem_ledger.max_size - header->size;
+    mem_ledger.smallest_free_mem_size = mem_ledger.max_size - header->size; //smallest/largest_free_mem_size TBD
     mem_ledger.next_block_start = header->mem_end + 1;
 
     header->previous = mem_ledger.last_allocated;
     mem_ledger.last_allocated = header;
 
     if (header->next != NULL) {
-        hole_size = (uint32_t) (header - (header->previous->mem_end + 1));
+        hole_size = (uint32_t) ((void *)header - (header->previous->mem_end + 1));
     }
     else {
-        hole_size = 
+        //hole_size = 
     }
 
     if (hole_size < mem_ledger.smallest_free_mem_size) {
         mem_ledger.smallest_free_mem_size = hole_size;
-        mem_ledger.smalllest_free_start = 
+        //mem_ledger.smalllest_free_start = 
     }
 
 }
 
-void * free(void *to_be_freed) {
+void * my_free(void *to_be_freed) {
 
-    
+    header_t *header;
+
+    header = (header_t*)to_be_freed - sizeof(header_t);
+
 }
 
 void * __alloc(header_t *header, uint32_t size_in_bytes, void *free_mem_start) {
@@ -79,10 +82,11 @@ int memory_init()
         return ERROR;
     }
 
-    mem_ledger.block_start = ptr;
+    mem_ledger.next_block_start = ptr;
 
     /* Initially, all of the memory is available*/
-    mem_ledger.free_mem_size = MAX_ALLOC_SIZE_BYTES;
+    mem_ledger.smallest_free_mem_size = MAX_ALLOC_SIZE_BYTES;
+    mem_ledger.largest_free_mem_size = MAX_ALLOC_SIZE_BYTES;
 
     return SUCCESS;
 }

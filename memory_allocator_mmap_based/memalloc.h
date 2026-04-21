@@ -38,4 +38,4 @@ typedef struct mem_ledger {
 
 int memory_init();
 void *alloc (uint32_t size_in_bytes);
-void * __alloc(header_t *header, uint32_t size_in_bytes, void *free_mem_start)
+void * __alloc(header_t *header, uint32_t size_in_bytes, void *free_mem_start);
