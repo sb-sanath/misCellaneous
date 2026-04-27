@@ -6,37 +6,42 @@ uint32_t hole_size;
 
 void *book_keeping(header_t *header)
 {
-    mem_ledger.smallest_free_mem_size = mem_ledger.max_size - header->size; //smallest/largest_free_mem_size TBD
-    mem_ledger.next_block_start = header->mem_end + 1;
+    mem_ledger.free_mem_size = mem_ledger.free_mem_size - header->size;
+    //mem_ledger.last_allocated = header;
+}
 
-    header->previous = mem_ledger.last_allocated;
-    mem_ledger.last_allocated = header;
+void *sort_and_add_hole_list(hole_head_t *hole){
+    hole_head_t *head = mem_ledger.hole_list;
 
-    if (header->next != NULL) {
-        hole_size = (uint32_t) ((void *)header - (header->previous->mem_end + 1));
-    }
-    else {
-        //hole_size = 
-    }
-
-    if (hole_size < mem_ledger.smallest_free_mem_size) {
-        mem_ledger.smallest_free_mem_size = hole_size;
-        //mem_ledger.smalllest_free_start = 
+    if (head == NULL) {
+        mem_ledger.hole_list = hole;
+        return 0;
     }
 
+    // TODO: sort and add this particular hole to the list
 }
 
 void * my_free(void *to_be_freed) {
 
     header_t *header;
+    hole_head_t *hole;
+    uint32_t size;
 
     header = (header_t*)to_be_freed - sizeof(header_t);
 
+    size = header->size;
+
+    mem_ledger.free_mem_size = mem_ledger.free_mem_size + size;
+
+    hole = (hole_head_t *) header;
+    hole->size = size;
+
+    sort_and_add_hole_list(hole);
+
 }
 
-void * __alloc(header_t *header, uint32_t size_in_bytes, void *free_mem_start) {
+void * __alloc(header_t *header, uint32_t size_in_bytes) {
 
-    header = (header_t *) free_mem_start;
     header->allocated = true;
     header->size = size_in_bytes;
     header->mem_start = (void *) (header + 1);
@@ -47,22 +52,35 @@ void * __alloc(header_t *header, uint32_t size_in_bytes, void *free_mem_start) {
 void *alloc (uint32_t size_in_bytes)
 {
     header_t *header;
+    hole_head_t *temp_hole;
+    hole_head_t *previous;
 
     if (size_in_bytes > mem_ledger.max_size) {
         printf("requested mem siz is larger than heap. ALLOCATION FAILED !!\n");
         return ENOMEM;
     }
 
-    if (size_in_bytes < mem_ledger.smallest_free_mem_size) {
-        __alloc(header, size_in_bytes, mem_ledger.smalllest_free_start);
+    temp_hole = mem_ledger.hole_list;
+
+    while (temp_hole != NULL) {
+        if (temp_hole->size > size_in_bytes) {
+            printf("Hole found! allocating in hole\n");
+            previous->next = temp_hole->next;
+            header = (header_t *) temp_hole;
+            __alloc(header, size_in_bytes);
+            book_keeping(header);
+            return header->mem_start;
+        }
+        previous = temp_hole;
+        temp_hole = temp_hole->next;
     }
 
-    else {
-        __alloc(header, size_in_bytes, mem_ledger.largest_free_start);
-    }
-    
+    printf("NO holes found which could fit the requested size. Allocaing from main mem.\n");
+    header = (header_t *) mem_ledger.next_block_start;
+    __alloc(header, size_in_bytes);
 
     book_keeping(header);
+    mem_ledger.next_block_start = header->mem_end + 1;
 
     return header->mem_start;
 
@@ -85,8 +103,9 @@ int memory_init()
     mem_ledger.next_block_start = ptr;
 
     /* Initially, all of the memory is available*/
-    mem_ledger.smallest_free_mem_size = MAX_ALLOC_SIZE_BYTES;
-    mem_ledger.largest_free_mem_size = MAX_ALLOC_SIZE_BYTES;
+    mem_ledger.free_mem_size = MAX_ALLOC_SIZE_BYTES;
+
+    mem_ledger.hole_list = NULL;
 
     return SUCCESS;
 }

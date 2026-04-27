@@ -14,28 +14,39 @@ enum errorcodes {
     ERROR
 };
 
+typedef struct hole_head {
+    uint32_t size;
+    struct hole_head *next;
+}hole_head_t;
 
 typedef struct header {
     bool allocated;
     uint32_t size;
     void *mem_start;
     void *mem_end;
-    struct header *next;
-    struct header *previous;
 
 }header_t;
 
 typedef struct mem_ledger {
     uint32_t max_size;
-    uint32_t largest_free_mem_size;
-    uint32_t smallest_free_mem_size;
-    void *largest_free_start;
-    void *smalllest_free_start;
-    header_t *last_allocated;
+    uint32_t free_mem_size;
+    //header_t *last_allocated;
     void *next_block_start;
+    struct  hole_head *hole_list;    
 }mem_ledger_t;
 
 
 int memory_init();
 void *alloc (uint32_t size_in_bytes);
-void * __alloc(header_t *header, uint32_t size_in_bytes, void *free_mem_start);
+void * __alloc(header_t *header, uint32_t size_in_bytes);
+void *sort_and_add_hole_list(hole_head_t *hole);
+
+
+/*
+last_allocated for the main memory - i.e, the normal remaining memory
+
+hole_list for holes. A linked list of all holes. These will be basically typecasted from header_t which is freed.
+
+Befor allocating from the main memory, traverse the list of holes. If found a hole which can contain the new requested size,
+allocate it. (Also, handle the hole list properly).
+*/
