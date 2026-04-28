@@ -48,7 +48,7 @@ void * my_free(void *to_be_freed) {
     hole_head_t *hole;
     uint32_t size;
 
-    header = (header_t*)to_be_freed - sizeof(header_t);
+    header = (header_t*)(to_be_freed - sizeof(header_t));
 
     size = header->size;
 
@@ -56,6 +56,7 @@ void * my_free(void *to_be_freed) {
 
     hole = (hole_head_t *) header;
     hole->size = size;
+    hole->next = NULL;
 
     sort_and_add_hole_list(hole);
 
@@ -141,8 +142,11 @@ int main (void)
 
     a = (int *) alloc(10);
     *a = 9;
+    printf("%d\n", *a);
 
-    printf("%d", *a);
+    my_free(a);
+
+    a = (int *) alloc(9);
 
 
 }
