@@ -11,14 +11,35 @@ void *book_keeping(header_t *header)
 }
 
 void *sort_and_add_hole_list(hole_head_t *hole){
+
     hole_head_t *head = mem_ledger.hole_list;
+    hole_head_t *temp;
+    hole_head_t *previous = mem_ledger.hole_list;
 
     if (head == NULL) {
         mem_ledger.hole_list = hole;
+        mem_ledger.hole_list->next = NULL;
         return 0;
     }
 
-    // TODO: sort and add this particular hole to the list
+    /* Check if the hole->size is smaller than first entry in hole_list itself */
+    if (hole->size < mem_ledger.hole_list->size){
+        temp = mem_ledger.hole_list;
+        mem_ledger.hole_list = hole;
+        hole->next = temp;
+    }
+    else {
+        while (head != NULL) {
+            if (hole->size < mem_ledger.hole_list->size) {
+                previous->next = hole;
+                hole->next = head;
+            }
+            previous = head;
+            head = head->next;
+        }
+        previous->next = hole;
+        hole->next = head;
+    }
 }
 
 void * my_free(void *to_be_freed) {
