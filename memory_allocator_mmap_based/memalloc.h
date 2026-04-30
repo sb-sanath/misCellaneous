@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <errno.h>
 #include <stdbool.h>
-
+#include <string.h>
 
 #define WORD_BITS 32
 #define MAX_ALLOC_SIZE_BYTES 1024*1024*1024
@@ -40,7 +40,8 @@ int memory_init();
 void *alloc (uint32_t size_in_bytes);
 void * __alloc(header_t *header, uint32_t size_in_bytes);
 void *sort_and_add_hole_list(hole_head_t *hole);
-
+void * unalloc(void *to_be_freed);
+void *re_alloc(void *to_be_relocated, uint32_t new_size_in_bytes);
 
 /*
 last_allocated for the main memory - i.e, the normal remaining memory

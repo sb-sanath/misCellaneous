@@ -42,7 +42,7 @@ void *sort_and_add_hole_list(hole_head_t *hole){
     }
 }
 
-void * my_free(void *to_be_freed) {
+void * unalloc(void *to_be_freed) {
 
     header_t *header;
     hole_head_t *hole;
@@ -108,6 +108,29 @@ void *alloc (uint32_t size_in_bytes)
 
 }
 
+void *re_alloc(void *to_be_relocated, uint32_t new_size_in_bytes) {
+
+    void *new_mem_start;
+    uint32_t data_bytes_to_be_copied;
+    header_t *original_mem_header = (header_t*)(to_be_relocated - sizeof(header_t));
+
+    new_mem_start =  alloc(new_size_in_bytes);
+
+    printf("alloc successfull from realloc\n");
+
+    data_bytes_to_be_copied = (new_size_in_bytes < original_mem_header->size) ? new_size_in_bytes : original_mem_header->size;
+
+    memcpy(new_mem_start, (const void*)original_mem_header->mem_start, data_bytes_to_be_copied);
+
+    printf("memcpy successfull from realloc\n");
+
+    unalloc(to_be_relocated);
+
+    printf("unalloc successfull from realloc\n");
+
+    return new_mem_start;
+}
+
 int memory_init()
 {
     mem_ledger.max_size = MAX_ALLOC_SIZE_BYTES;
@@ -136,7 +159,7 @@ int main (void)
 {
 
     int ret;
-    int *a;
+    int *a, *b, *c, *d, *e;
 
     ret = memory_init();
 
@@ -144,9 +167,25 @@ int main (void)
     *a = 9;
     printf("%d\n", *a);
 
-    my_free(a);
+    unalloc(a);
 
     a = (int *) alloc(9);
+
+    unalloc(a);
+
+    a = (int *) alloc(100);
+    b = (int *) alloc(90);
+    c = (int *) alloc(80);
+
+    unalloc(c);
+
+    c = (int *) alloc(10);
+
+    d = (int *) alloc(18);
+
+    e = (int *) re_alloc(d, 2);
+
+
 
 
 }
