@@ -77,25 +77,39 @@ void *alloc (uint32_t size_in_bytes)
     hole_head_t *temp_hole;
     hole_head_t *previous;
 
-    if (size_in_bytes > mem_ledger.max_size) {
+    if ((size_in_bytes > mem_ledger.max_size) || (size_in_bytes > mem_ledger.free_mem_size)) {
         printf("requested mem siz is larger than heap. ALLOCATION FAILED !!\n");
         return ENOMEM;
     }
-
-    temp_hole = mem_ledger.hole_list;
-
-    while (temp_hole != NULL) {
-        if (temp_hole->size > size_in_bytes) {
-            printf("Hole found! allocating in hole\n");
-            previous->next = temp_hole->next;
-            header = (header_t *) temp_hole;
+    /* If the hole list is not null */
+    if (mem_ledger.hole_list != NULL) {
+        /* If the first entry in hole list can accomodate the new alloc request */
+        if (mem_ledger.hole_list->size > size_in_bytes) {
+            printf("Hole found at the head of list! allocating in hole\n");
+            previous = mem_ledger.hole_list->next;
+            header = (header_t *) mem_ledger.hole_list;
             __alloc(header, size_in_bytes);
             book_keeping(header);
+            mem_ledger.hole_list = previous;
             return header->mem_start;
         }
-        previous = temp_hole;
-        temp_hole = temp_hole->next;
-    }
+        else {
+            temp_hole = mem_ledger.hole_list->next;
+            previous = mem_ledger.hole_list;
+            while (temp_hole != NULL) {
+                if (temp_hole->size > size_in_bytes) {
+                    printf("Hole found somewhere along the list! allocating in hole\n");
+                    previous->next = temp_hole->next;
+                    header = (header_t *) temp_hole;
+                    __alloc(header, size_in_bytes);
+                    book_keeping(header);
+                    return header->mem_start;
+                }
+                previous = temp_hole;
+                temp_hole = temp_hole->next;
+            }
+        }
+}
 
     printf("NO holes found which could fit the requested size. Allocaing from main mem.\n");
     header = (header_t *) mem_ledger.next_block_start;
@@ -112,21 +126,16 @@ void *re_alloc(void *to_be_relocated, uint32_t new_size_in_bytes) {
 
     void *new_mem_start;
     uint32_t data_bytes_to_be_copied;
+
     header_t *original_mem_header = (header_t*)(to_be_relocated - sizeof(header_t));
 
     new_mem_start =  alloc(new_size_in_bytes);
-
-    printf("alloc successfull from realloc\n");
 
     data_bytes_to_be_copied = (new_size_in_bytes < original_mem_header->size) ? new_size_in_bytes : original_mem_header->size;
 
     memcpy(new_mem_start, (const void*)original_mem_header->mem_start, data_bytes_to_be_copied);
 
-    printf("memcpy successfull from realloc\n");
-
     unalloc(to_be_relocated);
-
-    printf("unalloc successfull from realloc\n");
 
     return new_mem_start;
 }
@@ -183,7 +192,7 @@ int main (void)
 
     d = (int *) alloc(18);
 
-    e = (int *) re_alloc(d, 2);
+    e = (int *) re_alloc(d, 20);
 
 
 
