@@ -4,35 +4,37 @@
 mem_ledger_t mem_ledger;
 uint32_t hole_size;
 
-void *book_keeping(header_t *header)
+void book_keeping(header_t *header)
 {
     mem_ledger.free_mem_size = mem_ledger.free_mem_size - header->size;
     //mem_ledger.last_allocated = header;
 }
 
-void *sort_and_add_hole_list(hole_head_t *hole){
+void sort_and_add_hole_list(hole_head_t *hole){
 
     hole_head_t *head = mem_ledger.hole_list;
-    hole_head_t *temp;
-    hole_head_t *previous = mem_ledger.hole_list;
+    hole_head_t *previous = NULL;
 
     if (head == NULL) {
         mem_ledger.hole_list = hole;
         mem_ledger.hole_list->next = NULL;
-        return 0;
+        return;
     }
 
     /* Check if the hole->size is smaller than first entry in hole_list itself */
-    if (hole->size < mem_ledger.hole_list->size){
-        temp = mem_ledger.hole_list;
+    if (hole->size < head->size){
+        hole->next = head;
         mem_ledger.hole_list = hole;
-        hole->next = temp;
+        return;
     }
     else {
+        previous = head;
+        head = head->next;
         while (head != NULL) {
-            if (hole->size < mem_ledger.hole_list->size) {
+            if (hole->size < head->size) {
                 previous->next = hole;
                 hole->next = head;
+                return;
             }
             previous = head;
             head = head->next;
@@ -42,7 +44,7 @@ void *sort_and_add_hole_list(hole_head_t *hole){
     }
 }
 
-void * unalloc(void *to_be_freed) {
+void unalloc(void *to_be_freed) {
 
     header_t *header;
     hole_head_t *hole;
@@ -62,7 +64,7 @@ void * unalloc(void *to_be_freed) {
 
 }
 
-void * __alloc(header_t *header, uint32_t size_in_bytes) {
+void __alloc(header_t *header, uint32_t size_in_bytes) {
 
     header->allocated = true;
     header->size = size_in_bytes;
@@ -116,7 +118,7 @@ void *alloc (uint32_t size_in_bytes)
     __alloc(header, size_in_bytes);
 
     book_keeping(header);
-    mem_ledger.next_block_start = header->mem_end + 1;
+    mem_ledger.next_block_start = header->mem_end;
 
     return header->mem_start;
 
@@ -130,6 +132,9 @@ void *re_alloc(void *to_be_relocated, uint32_t new_size_in_bytes) {
     header_t *original_mem_header = (header_t*)(to_be_relocated - sizeof(header_t));
 
     new_mem_start =  alloc(new_size_in_bytes);
+
+    if (!new_mem_start)
+        return NULL;
 
     data_bytes_to_be_copied = (new_size_in_bytes < original_mem_header->size) ? new_size_in_bytes : original_mem_header->size;
 
